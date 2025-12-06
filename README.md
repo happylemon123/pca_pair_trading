@@ -29,9 +29,23 @@ We construct a spread between the selected pair and trade based on **Z-Score Mea
 - `pca_pair_trading.ipynb`: The main Jupyter Notebook containing all code, visualizations, and backtest results.
 
 ## How to Run
+
+### Option A: Jupyter Notebook (Local)
 1.  Ensure you have Python installed with `numpy`, `pandas`, `matplotlib`, `seaborn`, and `scikit-learn`.
 2.  Open the notebook:
     ```bash
     jupyter notebook pca_pair_trading.ipynb
     ```
-3.  Run all cells to generate the simulation and backtest results.
+
+### Option B: Docker (Reproducible Environment)
+This project includes a Dockerfile to run the Gradient Descent simulation in a consistent environment.
+
+1.  **Build the Image:**
+    ```bash
+    docker build -t pca-trading .
+    ```
+2.  **Run the Container:**
+    ```bash
+    docker run pca-trading
+    ```
+    *(Note: This runs the `gradient_descent_scratch.py` script as a demo).*
