@@ -1,51 +1,59 @@
-# PCA-Based Statistical Arbitrage (Pair Trading)
+# PCA-Based Statistical Arbitrage & Regime Detection
 
 ## Project Overview
-This project implements a **Statistical Arbitrage** strategy using **Principal Component Analysis (PCA)** to identify and trade mean-reverting pairs in a simulated stock market environment.
+This repository implements a **Statistical Arbitrage** strategy that leverages **Principal Component Analysis (PCA)** for factor modeling and **Hidden Markov Models (HMM)** for market regime detection. The system identifies identifying cointegrated pairs by isolating idiosyncratic risk (residuals) after hedging systematic market factors.
 
-The goal is to demonstrate advanced quantitative finance techniques, including dimensionality reduction for factor extraction and cointegration testing for pair selection.
+The core objective is to demonstrate a robust quantitative trading framework that adapts to changing market conditions, specifically filtering trades based on latent volatility states.
 
-## Methodology
+## Key Components
 
-### 1. Data Simulation
-We simulate a universe of **50 stocks** driven by **3 latent market factors** (e.g., Market, Sector A, Sector B). This ensures that the underlying mathematical relationships exist, allowing for a clean demonstration of the strategy logic without the noise and cost of real-time market data APIs.
+### 1. Factor Model (PCA)
+The strategy decomposes asset returns into:
+- **Systematic Risk**: Captures market-wide movements using the top $K$ principal components.
+- **Idiosyncratic Risk (Residuals)**: Isolates stock-specific alpha (`Actual - Systematic`).
 
-### 2. Factor Extraction (PCA)
-We apply **Principal Component Analysis (PCA)** to the returns matrix to extract the top $K$ components that explain the majority of the market variance.
-- **Systematic Risk**: The part of returns explained by these PCA components.
-- **Idiosyncratic Risk (Residuals)**: The remaining part of returns (`Actual - Systematic`).
+PCA is applied to a universe of 50 assets to extract latent factors, ensuring that the resulting signals are orthogonal to broad market movements.
 
-### 3. Pair Selection
-We analyze the **residuals** of all stocks to find pairs that are highly correlated *after* removing market risk.
-- A high correlation in residuals implies that two stocks behave similarly for reasons specific to them, making them ideal candidates for pair trading.
+### 2. Signal Generation (Mean Reversion)
+We model the spreads of selected pairs as an **Ornstein-Uhlenbeck** process. Trading signals are generated based on Z-Score thresholds:
+- **Entry**: When the spread deviates significantly from its historical mean (e.g., Z-Score > 2.0 or < -2.0).
+- **Exit**: When the spread reverts to the mean (Z-Score approaching 0).
 
-### 4. Trading Strategy
-We construct a spread between the selected pair and trade based on **Z-Score Mean Reversion**:
-- **Long the Spread**: When Z-Score < -2.0 (Spread is statistically too low).
-- **Short the Spread**: When Z-Score > 2.0 (Spread is statistically too high).
-- **Exit**: When Z-Score returns to 0.
+### 3. Risk Management (HMM Regime Switching)
+A **Hidden Markov Model (HMM)** is implemented to classify market states into distinct regimes:
+- **Calm / Bullish**: Low volatility, high correlation stability. Suitable for mean-reversion strategies.
+- **Volatile / Bearish**: High volatility, breakdown of historical correlations. Trading is paused to mitigate tail risk.
 
-## Files
-- `pca_pair_trading.ipynb`: The main Jupyter Notebook containing all code, visualizations, and backtest results.
+This acts as a dynamic filter, preventing the strategy from executing trades during periods where statistical assumptions are likely to fail.
 
-## How to Run
+## Architecture
 
-### Option A: Jupyter Notebook (Local)
-1.  Ensure you have Python installed with `numpy`, `pandas`, `matplotlib`, `seaborn`, and `scikit-learn`.
-2.  Open the notebook:
-    ```bash
-    jupyter notebook pca_pair_trading.ipynb
-    ```
+- **`pca_pair_trading.ipynb`**: The primary research environment containing the full backtesting pipeline. Includes data generation, factor analysis, signal construction, and performance attribution.
+- **`market_regime_hmm.py`**: A standalone module for the HMM implementation. Demonstrates the training of the regime detection model using Gaussian Mixture inputs.
+- **`gradient_descent_scratch.py`**: Simulation engine for generating synthetic price paths with controlled drift and volatility parameters, used to validate the strategy's theoretical underpinnings.
 
-### Option B: Docker (Reproducible Environment)
-This project includes a Dockerfile to run the Gradient Descent simulation in a consistent environment.
+## Usage
+
+### Simulated Environment
+The strategy uses a simulated data feed to ensure reproducibility and to isolate the performance of the logic from external market noise. The simulation generates 3 latent factors driving 50 stocks, providing a clean ground truth for testing cointegration.
+
+### Running with Docker
+A Dockerfile is provided to ensure a consistent execution environment.
 
 1.  **Build the Image:**
     ```bash
     docker build -t pca-trading .
     ```
+
 2.  **Run the Container:**
     ```bash
     docker run pca-trading
     ```
-    *(Note: This runs the `gradient_descent_scratch.py` script as a demo).*
+
+### Running Locally
+Ensure Python 3.8+ is installed with `numpy`, `pandas`, `scikit-learn`, `matplotlib`, and `seaborn`.
+
+```bash
+pip install -r requirements.txt
+jupyter notebook pca_pair_trading.ipynb
+```
